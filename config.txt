@@ -1,0 +1,2 @@
+host1 user pwd
+host2 user pwd

@@ -4,5 +4,5 @@ It supports configuration - see config.json where you can specify host/alias for
 
 Usage:<br>
 go run main.go -host=host1 => that will pick up credentials from config.json<br>
-go run main.go -host=alias 
+go run main.go -host=alias<br>
 go run main.go -host=host1 -user=user -pwd=pass<br>

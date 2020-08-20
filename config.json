@@ -1,0 +1,11 @@
+[
+    {
+        "host": "host",
+        "user": "user",
+        "pass": "pass",
+        "alias": [
+            "nlp"
+        ],
+        "env": "sit"
+    }
+]

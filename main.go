@@ -2,9 +2,11 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"strings"
 
@@ -18,7 +20,15 @@ type config struct {
 	ciphers  []string
 }
 
+type fileConfig struct {
+	Host  string   `json:"host"`
+	User  string   `json:"user"`
+	Pass  string   `json:"pass"`
+	Alias []string `json:"alias"`
+}
+
 func main() {
+
 	cfg := getConfig()
 	wr, sess := connect(cfg)
 
@@ -63,8 +73,8 @@ func getConfig() *config {
 		panic("Required -host option")
 	}
 	if user == "" || password == "" {
-		file := flag.String("file", "config.txt", "file with hosts and passwords")
-		user, password = getCredsFromFile(*host, *file)
+		file := flag.String("file", "C:\\Users\\rl78794\\config.json", "file with hosts and passwords")
+		*host, user, password = getCredsFromFile(*host, *file)
 	}
 
 	if !strings.Contains(":", *host) {
@@ -84,31 +94,35 @@ func getConfig() *config {
 	return &cfg
 }
 
-func getCredsFromFile(host string, file string) (user, password string) {
-	fmt.Printf("Using %v to resolve credentials for %v host\n", file, host)
+func getCredsFromFile(hostOrAlias string, file string) (host, user, password string) {
+	fmt.Printf("Using %v to resolve credentials for %v host\n", file, hostOrAlias)
 	f, err := os.Open(file)
 	if err != nil {
 		panic(err)
 	}
 	defer f.Close()
 
-	scanner := bufio.NewScanner(f)
-	for scanner.Scan() {
-		line := scanner.Text()
-		tokens := strings.Split(line, " ")
-		if len(tokens) == 3 && strings.Contains(tokens[0], host) {
-			user = tokens[1]
-			password = tokens[2]
-			break
-		}
-	}
-	if user == "" {
-		panic(fmt.Sprintf("Could not find host configuration for %v host", host))
-	}
-	if err := scanner.Err(); err != nil {
+	var fc []fileConfig
+	bytes, err := ioutil.ReadAll(f)
+	if err != nil {
 		panic(err)
 	}
-	return user, password
+	json.Unmarshal(bytes, &fc)
+	for _, c := range fc {
+		if strings.Contains(c.Host, hostOrAlias) || contains(hostOrAlias, c.Alias) {
+			return c.Host, c.User, c.Pass
+		}
+	}
+	panic(fmt.Sprintf("Could not find host configuration for %v host", hostOrAlias))
+}
+
+func contains(search string, arr []string) bool {
+	for _, l := range arr {
+		if l == search {
+			return true
+		}
+	}
+	return false
 }
 
 func connect(cfg *config) (io.WriteCloser, *ssh.Session) {
